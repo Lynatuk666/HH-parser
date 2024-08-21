@@ -2,6 +2,7 @@ import requests
 from fake_headers import Headers
 import bs4
 import json
+import re
 
 url = "https://spb.hh.ru/search/vacancy?text=python&area=1&area=2"
 
@@ -18,12 +19,16 @@ vacancies = {}
 for vacancy_tag in vacancy_tags:
     name = vacancy_tag.find("span", class_="vacancy-name--c1Lay3KouCl7XasYakLk serp-item__title-link").text
     link = vacancy_tag.find("a", class_="bloko-link")["href"]
-    city = vacancy_tag.find(attrs={"class": "wide-container--lnYNwDTY2HXOzvtbTaHf","data-qa": "vacancy-serp__vacancy-address"}).text
+    try:
+        city = vacancy_tag.find("span", attrs={"class": "bloko-text","data-qa": "vacancy-serp__vacancy-address"}).text
+    except:
+        city = "не указан"
     new_response = requests.get(link, headers=header)
     vacancy_page_data = bs4.BeautifulSoup(new_response.text,
                                           features="lxml")
     try:
         salary = vacancy_page_data.find("span", class_="magritte-text___pbpft_3-0-13 magritte-text_style-primary___AQ7MW_3-0-13 magritte-text_typography-label-1-regular___pi3R-_3-0-13").text
+        salary = re.sub("&nbsp", "", salary)
     except AttributeError:
         salary = "не указано"
     try:
@@ -31,10 +36,10 @@ for vacancy_tag in vacancy_tags:
     except:
         vacancy_description = "no description"
     if "Django" in vacancy_description or "Flask" in vacancy_description:
-        #print(f"{name}, {city}, {salary}, {link}")
-        vacancy_inf = {"vacancy_name": name, "city":city, "salary":salary, "link":link}
+        vacancy_inf = {"vacancy_name": name, "city": city, "salary": salary, "link": link}
         vacancies[name] = vacancy_inf
-        print(name)
-with open("data.json", "w") as file:
+        #print(name)
+        #print(salary)
+with open("data.json", "w", encoding="UTF-8") as file:
     json.dump(vacancies, file)
-print(len(vacancies))
+print(f"данные записаны. Собрано {len(vacancies)} вакансий")
